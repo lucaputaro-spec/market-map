@@ -1,5 +1,8 @@
 # Market Map: a GTM strategy from a company website, one approved step at a time
 
+Live demo (AI switched off, so the steps are locked): https://market-map.lucaputaro.workers.dev
+The full chain runs locally with `npm run dev:ai`.
+
 Enter a company domain. The worker fetches the homepage and up to three
 subpages of the same host (/pricing, /about, /products). Cloudflare Workers AI
 then drafts a go-to-market strategy in six steps:
