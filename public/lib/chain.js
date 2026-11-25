@@ -38,6 +38,9 @@ import { STEPS } from "./types.js";
 const MAX_TEXT = 300;
 const MAX_BODY = 1500;
 const MAX_LIST = 8;
+// Der Worker nimmt in Schritt 1 höchstens so viel Seitentext an. Hier schon
+// kürzen, damit der Body unter seiner Größengrenze bleibt.
+export const MAX_PAGE_TEXT_TOTAL = 16_000;
 
 /** @returns {StepState} */
 const emptyStep = () => ({ status: "empty", items: [], dropped: [] });
@@ -298,7 +301,16 @@ export function buildContext(state, n) {
   const ctx = { step: n, domain: state.domain };
   /** @param {StepNo} k */
   const ok = (k) => k < n && state.steps[k].status === "approved";
-  if (n === 1) ctx.pages = state.pages.map((p) => ({ url: p.url, text: p.text }));
+  if (n === 1) {
+    let left = MAX_PAGE_TEXT_TOTAL;
+    ctx.pages = [];
+    for (const p of state.pages) {
+      if (left <= 0) break;
+      const text = p.text.slice(0, left);
+      ctx.pages.push({ url: p.url, text });
+      left -= text.length;
+    }
+  }
   if (ok(1)) ctx.facts = factsOf(state).map((f) => ({ url: f.url, quote: f.quote, topic: f.topic }));
   const live = segmentsOf(state).filter((s) => !s.struck);
   const liveIds = new Set(live.map((s) => s.id));

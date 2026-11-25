@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Map | GTM strategy from a company website, step by step</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<p class="off-note" id="ai-off" role="note" hidden>AI is off. Start with npm run dev:ai.</p>
+
+<header class="top">
+  <h1>Market Map</h1>
+  <p class="lede">Enter a company domain. Workers AI drafts a go-to-market strategy in 6 steps: market research, segments, personas, data sources and signals, keywords, offers with cold emails. You correct and approve each step before the next one runs. Every fact in step 1 must quote the website word for word, or it is dropped. Nothing is stored; download the result before you close the page.</p>
+</header>
+
+<main>
+<section class="card" aria-labelledby="domain-title">
+  <h2 id="domain-title">Company</h2>
+  <form class="row" id="domain-form">
+    <label for="domain">Domain</label>
+    <input id="domain" name="domain" placeholder="company.com" autocomplete="off" spellcheck="false">
+    <button type="submit" id="fetch">Fetch website</button>
+  </form>
+  <p class="hint">Fetches the homepage and /pricing, /about, /products of the same host. The page text is sent to Cloudflare Workers AI in step 1.</p>
+  <p class="hint" id="fetch-note" role="status"></p>
+  <ul class="pages" id="pages"></ul>
+</section>
+
+<div id="steps"></div>
+
+<section class="card" aria-labelledby="export-title">
+  <h2 id="export-title">Export</h2>
+  <div class="row">
+    <button type="button" id="download">Download Markdown</button>
+    <span class="hint" id="export-note" role="status"></span>
+  </div>
+  <p class="hint">The file is marked as an AI draft edited by a person. It is not verified research.</p>
+</section>
+</main>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 // Gespeichert und geloggt wird nichts. Prüfmuster aus Objection Cards.
 
 import { fetchSite } from "./guard";
+import { runStep } from "./steps";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -68,7 +69,7 @@ export default {
       if (!site.ok) return json({ error: site.error }, site.reason === "invalid_domain" ? 400 : 502);
       return json({ domain: site.domain, pages: site.pages });
     }
-    // /api/step: runStep() aus src/steps.ts kommt mit Plan-Schritt 6.
-    return json({ error: "Not built yet." }, 501);
+    const step = await runStep(env, body);
+    return json(step.body, step.status);
   },
 } satisfies ExportedHandler<Env>;
