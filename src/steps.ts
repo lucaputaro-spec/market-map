@@ -15,15 +15,17 @@ type Item = Record<string, unknown>;
 
 export type StepResult = { status: 200; body: { items: Item[] } } | { status: 400 | 502; body: { error: string } };
 
-export const AI_TIMEOUT_MS = 25_000;
+export const AI_TIMEOUT_MS = 60_000;
+// Gleich TOP_SEGMENTS in public/lib/chain.js.
+export const MAX_SEGMENTS_LATER = 3;
 export const MAX_PAGE_TEXT_TOTAL = 16_000;
 const MAX_STRING = 2000;
 const MAX_ARRAY = 60;
 const MAX_DEPTH = 4;
 
 // Obergrenzen je Antwort: gesamt bzw. je Segment.
-const MAX_TOTAL: Record<StepNo, number> = { 1: 15, 2: 8, 3: 24, 4: 64, 5: 8, 6: 32 };
-const MAX_PER_SEGMENT: Partial<Record<StepNo, number>> = { 3: 3, 4: 8, 5: 1, 6: 4 };
+const MAX_TOTAL: Record<StepNo, number> = { 1: 15, 2: 8, 3: 9, 4: 24, 5: 3, 6: 9 };
+const MAX_PER_SEGMENT: Partial<Record<StepNo, number>> = { 3: 3, 4: 8, 5: 1, 6: 3 };
 export const MAX_TOKENS: Record<StepNo, number> = { 1: 1500, 2: 1500, 3: 1500, 4: 1500, 5: 1500, 6: 2000 };
 
 const COMMON =
@@ -55,7 +57,7 @@ const PROMPTS: Record<StepNo, string> = {
     "Step 5, filter keywords. For each segment, give one entry with up to 15 short lowercase keywords to filter company or contact lists (industry terms, product terms, job titles). " +
     'Format: {"items":[{"segmentId":"...","keywords":["...","..."]}]}',
   6:
-    "Step 6, offers and cold emails. For each segment, give at most 4 offers. " +
+    "Step 6, offers and cold emails. For each segment, give up to 3 offers. " +
     "Each offer has segmentId, category (exactly one of make_money, save_money, save_time, reduce_risk), idea (one sentence) and email with subject (at most 10 words) and body (at most 64 words, plain text). " +
     "Never name customers. Never use a number that is not in the facts; write {proof} where a proof point would go. " +
     'Format: {"items":[{"segmentId":"...","category":"save_time","idea":"...","email":{"subject":"...","body":"..."}}]}',
@@ -107,7 +109,7 @@ export function readContext(body: Loose): { step: StepNo; data: Loose } | null {
     if (body[key] !== undefined) data[key] = bounded(body[key]);
   }
   if (step === 2 && !(Array.isArray(data.facts) && data.facts.length)) return null;
-  if (step >= 3 && !(Array.isArray(data.segments) && data.segments.length)) return null;
+  if (step >= 3 && !(Array.isArray(data.segments) && data.segments.length && data.segments.length <= MAX_SEGMENTS_LATER)) return null;
   return { step, data };
 }
 
@@ -198,7 +200,7 @@ export async function runStep(env: AiEnv, body: Loose): Promise<StepResult> {
       timer = setTimeout(() => done(null), AI_TIMEOUT_MS);
     });
     const result = await Promise.race([call, timeout]);
-    if (result === null) return { status: 502, body: { error: "Workers AI gave no answer within 25 seconds. Nothing was generated." } };
+    if (result === null) return { status: 502, body: { error: `Workers AI gave no answer within ${AI_TIMEOUT_MS / 1000} seconds. Nothing was generated.` } };
     const parsed = parseStep(ctx.step, modelText(result));
     return "error" in parsed ? { status: 502, body: parsed } : { status: 200, body: parsed };
   } catch {

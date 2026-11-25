@@ -7,7 +7,7 @@
 // Inhalte werden nur als Text eingesetzt, nie als HTML.
 
 import { aiResult, contextTooLarge, MAX_AI_CALLS_PER_SESSION } from "./lib/ai.js";
-import { addItem, applyResult, approve, buildContext, canApprove, canRun, createState, deleteItem, editItem, strikeSegment } from "./lib/chain.js";
+import { addItem, applyResult, approve, buildContext, canApprove, canRun, createState, deleteItem, editItem, strikeSegment, topSegments } from "./lib/chain.js";
 import { exportBlocker, toMarkdown } from "./lib/export.js";
 import { TOPICS } from "./lib/quote.js";
 import { OFFER_CATEGORIES, SIGNAL_TYPES } from "./lib/rules.js";
@@ -15,11 +15,11 @@ import { STEPS } from "./lib/types.js";
 
 const TITLES = {
   1: ["Market research", "Facts about offering, customers and pricing. Each one quotes a fetched page word for word."],
-  2: ["Segments", "Customer segments, best fit first. Strike the ones that do not fit; they leave all later steps."],
-  3: ["Personas", "Up to 3 buyers per segment: job title, what they are measured on, everyday problems."],
-  4: ["Data sources and signals", "Where to find these companies, and signals that they might buy now."],
-  5: ["Keywords", "Filter keywords per segment for company and contact lists."],
-  6: ["Offers and emails", "Up to 4 offers per segment with a cold email draft. Unproven numbers become {proof}."],
+  2: ["Segments", "Customer segments, best fit first. The first 3 segments that are not struck go into steps 3–6. Strike a segment to move the next one up."],
+  3: ["Personas", "Up to 3 buyers for each of the top 3 segments: job title, what they are measured on, everyday problems."],
+  4: ["Data sources and signals", "Where to find these companies, and signals that they might buy now, for the top 3 segments."],
+  5: ["Keywords", "Filter keywords for company and contact lists, for the top 3 segments."],
+  6: ["Offers and emails", "Up to 3 offers per segment with a cold email draft, for the top 3 segments. Unproven numbers become {proof}."],
 };
 const STATUS = { empty: "Not generated", draft: "Draft, needs approval", approved: "Approved", stale: "Outdated" };
 const TEST_CLAIM = "test claim: this company guarantees 300% more pipeline in 7 days";
@@ -76,7 +76,7 @@ function control(field, value) {
     input = h("input", { id, value: Array.isArray(value) ? value.join(", ") : "" });
   } else if (field.type === "select" || field.type === "segment" || field.type === "page") {
     let options = field.options;
-    if (field.type === "segment") options = state.steps[2].items.filter((s) => !s.struck).map((s) => [s.id, s.name]);
+    if (field.type === "segment") options = topSegments(state).map((s) => [s.id, s.name]);
     if (field.type === "page") options = state.pages.map((p) => p.url);
     const pairs = options.map((o) => (Array.isArray(o) ? o : [o, o]));
     if (value && !pairs.some(([v]) => v === value)) pairs.unshift([value, `${value} (unknown)`]);

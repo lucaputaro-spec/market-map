@@ -9,7 +9,11 @@ then drafts a go-to-market strategy in six steps:
 3. **Personas:** up to 3 per segment, with KPIs and everyday problems
 4. **Data sources and buying signals** (hiring, funding, new sales leader, tech stack)
 5. **Filter keywords** per segment
-6. **Offers and cold emails:** up to 4 per segment
+6. **Offers and cold emails:** up to 3 per segment
+
+Steps 3–6 run only for the top 3 segments: the first 3 that are not struck,
+in the order of step 2. Strike a segment to move the next one up. More does
+not fit into one Workers AI call within the 60 second limit.
 
 Each step runs only after the previous one is approved. You can edit, delete
 and add entries (segments can only be struck, with a reason); any change

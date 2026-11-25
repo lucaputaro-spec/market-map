@@ -46,7 +46,7 @@ describe("parseStep", () => {
     expect(parseStep(5, { items: [{ segmentId: "a", keywords: ["x", "y"] }, { segmentId: "a", keywords: ["z"] }] })).toEqual({ items: [{ segmentId: "a", keywords: ["x", "y"] }] });
     const offers = Array.from({ length: 6 }, () => ({ segmentId: "a", category: "save_time", idea: "i", email: { subject: "s", body: "line 1\nline 2" } }));
     const r6 = parseStep(6, { items: offers });
-    expect("items" in r6 && r6.items).toHaveLength(4);
+    expect("items" in r6 && r6.items).toHaveLength(3);
     expect("items" in r6 && r6.items[0]).toEqual({ segmentId: "a", category: "save_time", idea: "i", email: { subject: "s", body: "line 1\nline 2" } });
   });
 });
@@ -54,6 +54,28 @@ describe("parseStep", () => {
 describe("runStep", () => {
   it("without env.AI gives an error", async () => {
     expect(await runStep({}, ctx1)).toMatchObject({ status: 502, body: { error: expect.any(String) } });
+  });
+
+  it("step 3 and later accept at most 3 segments", () => {
+    const facts = [{ url: "https://acme.test/", quote: "Acme plans routes.", topic: "offering" }];
+    expect(readContext({ step: 3, facts, segments: ["a", "b", "c", "d"].map(seg) })).toBeNull();
+    expect(readContext({ step: 3, facts, segments: ["a", "b", "c"].map(seg) })).not.toBeNull();
+  });
+
+  it("caps step 6 at 3 offers per segment", () => {
+    const offers = Array.from({ length: 5 }, () => ({ segmentId: "a", category: "save_time", idea: "i", email: { subject: "s", body: "b" } }));
+    const r = parseStep(6, { items: offers });
+    expect("items" in r && r.items).toHaveLength(3);
+  });
+
+  it("waits 60 seconds and says so", async () => {
+    expect(AI_TIMEOUT_MS).toBe(60_000);
+    vi.useFakeTimers();
+    const hanging: AiEnv = { AI_MODEL: "m", AI: { run: () => new Promise(() => undefined) } as unknown as Ai };
+    const pending = runStep(hanging, ctx1);
+    await vi.advanceTimersByTimeAsync(AI_TIMEOUT_MS);
+    const r = await pending;
+    expect("error" in r.body && r.body.error).toContain("60 seconds");
   });
 
   it("step 2 needs facts", () => {

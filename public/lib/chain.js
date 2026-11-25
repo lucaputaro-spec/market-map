@@ -131,6 +131,14 @@ const list = (v) => (Array.isArray(v) ? v.map((x) => text(x)).filter(Boolean).sl
 /** @param {State} state */
 const segmentsOf = (state) => /** @type {Segment[]} */ (state.steps[2].items);
 
+// Schritte 3–6 laufen nur für die ersten 3 nicht gestrichenen Segmente:
+// mehr schafft Workers AI nicht im Zeitlimit (Handabnahme 25.11.2026).
+// Streichen lässt das nächste nachrücken. Der Export nutzt dieselbe Auswahl.
+export const TOP_SEGMENTS = 3;
+
+/** @param {State} state @returns {Segment[]} */
+export const topSegments = (state) => segmentsOf(state).filter((s) => !s.struck).slice(0, TOP_SEGMENTS);
+
 /** @param {State} state */
 const factsOf = (state) => /** @type {Fact[]} */ (state.steps[1].items);
 
@@ -157,6 +165,9 @@ function checkItem(state, n, raw, id) {
   const seg = segmentsOf(state).find((s) => s.id === segmentId);
   if (!seg) return { reason: "unknown_segment", detail: `segmentId ${JSON.stringify(raw.segmentId)} is not a segment from step 2` };
   if (seg.struck) return { reason: "struck_segment", detail: `segment “${seg.name}” was struck` };
+  if (!topSegments(state).some((s) => s.id === seg.id)) {
+    return { reason: "not_top_segment", detail: `segment “${seg.name}” is not one of the first ${TOP_SEGMENTS} segments that are not struck` };
+  }
 
   if (n === 3) {
     const title = text(raw.title);
@@ -360,7 +371,7 @@ export function buildContext(state, n) {
     }
   }
   if (ok(1)) ctx.facts = factsOf(state).map((f) => ({ url: f.url, quote: f.quote, topic: f.topic }));
-  const live = segmentsOf(state).filter((s) => !s.struck);
+  const live = topSegments(state);
   const liveIds = new Set(live.map((s) => s.id));
   if (ok(2)) ctx.segments = live.map((s) => ({ id: s.id, name: s.name, industry: s.industry, subIndustry: s.subIndustry, why: s.why }));
   /** @template {{ segmentId: string }} T @param {StepNo} k @returns {T[]} */

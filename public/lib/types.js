@@ -7,7 +7,7 @@
  * @typedef {{ url: unknown, quote: unknown, topic: unknown, source: ClaimSource }} Claim
  * @typedef {{ id: string, url: string, quote: string, topic: Topic, source: ClaimSource }} Fact
  * @typedef {"no_quote" | "quote_length" | "unknown_url" | "not_on_page" | "unknown_topic"
- *   | "bad_shape" | "unknown_segment" | "struck_segment" | "unknown_signal_type"
+ *   | "bad_shape" | "unknown_segment" | "struck_segment" | "not_top_segment" | "unknown_signal_type"
  *   | "unknown_category" | "too_long" | "subject_too_long" | "unproven_customer" | "no_keywords"} DropReason
  * @typedef {{ item: unknown, reason: DropReason, detail: string }} Dropped
  * @typedef {{ id: string, name: string, industry: string, subIndustry: string, why: string,

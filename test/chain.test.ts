@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addItem, applyResult, approve, buildContext, canApprove, canRun, createState, deleteItem, editItem, strikeSegment } from "../public/lib/chain.js";
+import { addItem, applyResult, approve, buildContext, canApprove, canRun, createState, deleteItem, editItem, strikeSegment, TOP_SEGMENTS, topSegments } from "../public/lib/chain.js";
 import type { State, StepNo } from "../public/lib/types.js";
 import { PAGES } from "./helpers";
 
@@ -217,5 +217,35 @@ describe("step 1 context size", () => {
     const ascii = [1, 2, 3, 4].map((i) => ({ url: `https://acme.test/${i}`, text: "a".repeat(6000) }));
     const ctx = buildContext(createState("acme.test", ascii), 1);
     expect(ctx.pages!.reduce((n, p) => n + p.text.length, 0)).toBe(16_000);
+  });
+});
+
+describe("top 3 segments", () => {
+  const FIVE = ["One", "Two", "Three", "Four", "Five"].map((name) => ({ name: `Seg ${name}`, industry: "x", subIndustry: "y", why: "z" }));
+  function five(): State {
+    let s = createState("acme.test", PAGES);
+    s = approve(applyResult(s, 1, { items: [FACT] }), 1);
+    return approve(applyResult(s, 2, { items: FIVE }), 2);
+  }
+  const names = (s: State, n: StepNo) => (buildContext(s, n).segments ?? []).map((x) => x.name);
+
+  it("sends only the first 3 live segments to step 3", () => {
+    const s = five();
+    expect(TOP_SEGMENTS).toBe(3);
+    expect(names(s, 3)).toEqual(["Seg One", "Seg Two", "Seg Three"]);
+    expect(topSegments(s).map((x) => x.name)).toEqual(["Seg One", "Seg Two", "Seg Three"]);
+  });
+
+  it("moves segment 4 up when segment 2 is struck", () => {
+    const r = strikeSegment(five(), segId(five(), "Seg Two"), "No fit");
+    if (!("state" in r)) throw new Error(r.error);
+    expect(names(r.state, 3)).toEqual(["Seg One", "Seg Three", "Seg Four"]);
+  });
+
+  it("drops a persona for segment 4 as not_top_segment", () => {
+    const s = five();
+    const next = applyResult(s, 3, { items: [rawFor(3, segId(s, "Seg Four")), rawFor(3, segId(s, "Seg One"))] });
+    expect(next.steps[3].items).toHaveLength(1);
+    expect(next.steps[3].dropped.map((d) => d.reason)).toEqual(["not_top_segment"]);
   });
 });

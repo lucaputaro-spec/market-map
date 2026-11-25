@@ -2,6 +2,7 @@
 // keiner veraltet ist. Gestrichene Segmente und alles, was an ihnen hängt,
 // kommen nicht hinein. {proof} bleibt sichtbar, damit niemand die Lücke übersieht.
 
+import { topSegments } from "./chain.js";
 import { STEPS } from "./types.js";
 
 /**
@@ -16,7 +17,6 @@ import { STEPS } from "./types.js";
  */
 
 export const HEADER = "AI draft (Workers AI), edited by a person. Not verified research.";
-export const TOP_SEGMENTS = 3;
 export const PERSONAS_PER_SEGMENT = 3;
 export const OFFERS_PER_SEGMENT = 3;
 
@@ -42,7 +42,7 @@ export function toMarkdown(state, { domain, date }) {
   const blocker = exportBlocker(state);
   if (blocker) throw new Error(blocker);
   const facts = /** @type {Fact[]} */ (state.steps[1].items);
-  const segments = /** @type {Segment[]} */ (state.steps[2].items).filter((s) => !s.struck).slice(0, TOP_SEGMENTS);
+  const segments = topSegments(state);
   const personas = /** @type {Persona[]} */ (state.steps[3].items);
   const step4 = /** @type {(Source | Signal)[]} */ (state.steps[4].items);
   const keywords = /** @type {Keyword[]} */ (state.steps[5].items);
