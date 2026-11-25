@@ -18,7 +18,7 @@ export const SIGNAL_TYPES = Object.freeze(["hiring", "funding", "new_sales_leade
 /** @type {readonly OfferCategory[]} */
 export const OFFER_CATEGORIES = Object.freeze(["make_money", "save_money", "save_time", "reduce_risk"]);
 
-export const MAX_KEYWORDS = 15;
+export const MAX_KEYWORDS = 10;
 export const MIN_KEYWORD = 2;
 export const MAX_KEYWORD = 40;
 export const MAX_BODY_WORDS = 64;

@@ -6,9 +6,9 @@ then drafts a go-to-market strategy in six steps:
 
 1. **Market research:** facts about offering, customers and pricing
 2. **Segments:** up to 8, best fit first
-3. **Personas:** up to 3 per segment, with KPIs and everyday problems
-4. **Data sources and buying signals** (hiring, funding, new sales leader, tech stack)
-5. **Filter keywords** per segment
+3. **Personas:** up to 3 per segment, each with up to 3 KPIs and 3 everyday problems
+4. **Data sources and buying signals:** up to 3 of each per segment (hiring, funding, new sales leader, tech stack)
+5. **Filter keywords:** up to 10 per segment
 6. **Offers and cold emails:** up to 3 per segment
 
 Steps 3–6 run only for the top 3 segments: the first 3 that are not struck,

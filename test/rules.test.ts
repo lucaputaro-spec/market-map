@@ -78,8 +78,9 @@ describe("customer reference phrases", () => {
 });
 
 describe("cleanKeywords", () => {
-  it("lowercases, dedupes, keeps 2–40 characters and at most 15", () => {
+  it("lowercases, dedupes, keeps 2–40 characters and at most 10", () => {
     expect(cleanKeywords(["Route Planning", "route  planning", "x", "a".repeat(41), 7, "Bakery"])).toEqual(["route planning", "bakery"]);
-    expect(cleanKeywords(Array.from({ length: 20 }, (_, i) => `kw${i}`))).toHaveLength(MAX_KEYWORDS);
+    expect(MAX_KEYWORDS).toBe(10);
+    expect(cleanKeywords(Array.from({ length: 20 }, (_, i) => `kw${i}`))).toHaveLength(10);
   });
 });

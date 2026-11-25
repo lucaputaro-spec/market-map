@@ -62,6 +62,22 @@ describe("runStep", () => {
     expect(readContext({ step: 3, facts, segments: ["a", "b", "c"].map(seg) })).not.toBeNull();
   });
 
+  it("caps step 3 at 3 KPIs and 3 problems per persona", () => {
+    const five = ["a", "b", "c", "d", "e"];
+    const r = parseStep(3, { items: [{ segmentId: "a", title: "t", measuredOn: five, problems: five }] });
+    expect("items" in r && r.items[0]).toMatchObject({ measuredOn: ["a", "b", "c"], problems: ["a", "b", "c"] });
+  });
+
+  it("caps step 4 at 3 sources and 3 signals per segment", () => {
+    const sources = Array.from({ length: 5 }, (_, i) => ({ kind: "source", segmentId: "a", name: `s${i}` }));
+    const signals = Array.from({ length: 5 }, (_, i) => ({ kind: "signal", segmentId: "a", type: "hiring", description: `d${i}` }));
+    const r = parseStep(4, { items: [...sources, ...signals, { kind: "source", segmentId: "b", name: "x" }] });
+    const items = "items" in r ? r.items : [];
+    expect(items.filter((i) => i.segmentId === "a" && i.kind === "source")).toHaveLength(3);
+    expect(items.filter((i) => i.segmentId === "a" && i.kind === "signal")).toHaveLength(3);
+    expect(items.filter((i) => i.segmentId === "b")).toHaveLength(1);
+  });
+
   it("caps step 6 at 3 offers per segment", () => {
     const offers = Array.from({ length: 5 }, () => ({ segmentId: "a", category: "save_time", idea: "i", email: { subject: "s", body: "b" } }));
     const r = parseStep(6, { items: offers });
