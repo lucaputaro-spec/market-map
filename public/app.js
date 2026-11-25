@@ -6,8 +6,8 @@
 // - Gespeichert wird nichts, alles liegt nur im Speicher dieser Seite.
 // Inhalte werden nur als Text eingesetzt, nie als HTML.
 
-import { aiResult, MAX_AI_CALLS_PER_SESSION } from "./lib/ai.js";
-import { addItem, applyResult, approve, buildContext, canRun, createState, deleteItem, editItem, strikeSegment } from "./lib/chain.js";
+import { aiResult, contextTooLarge, MAX_AI_CALLS_PER_SESSION } from "./lib/ai.js";
+import { addItem, applyResult, approve, buildContext, canApprove, canRun, createState, deleteItem, editItem, strikeSegment } from "./lib/chain.js";
 import { exportBlocker, toMarkdown } from "./lib/export.js";
 import { TOPICS } from "./lib/quote.js";
 import { OFFER_CATEGORIES, SIGNAL_TYPES } from "./lib/rules.js";
@@ -144,13 +144,20 @@ async function generate(n) {
     render();
     return;
   }
+  const ctx = buildContext(state, n);
+  const tooLarge = contextTooLarge(ctx);
+  if (tooLarge) {
+    errors[n] = tooLarge;
+    render();
+    return;
+  }
   aiCalls += 1;
   busy = true;
   errors[n] = "";
   render();
   let res = null;
   try {
-    const r = await fetch("/api/step", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(buildContext(state, n)) });
+    const r = await fetch("/api/step", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(ctx) });
     res = { status: r.status, body: await r.json().catch(() => null) };
   } catch {
     res = null;
@@ -220,7 +227,7 @@ function segmentItem(item) {
     "li",
     { class: "item" },
     ed.el,
-    h("div", { class: "row" }, button("Save", () => update(editItem(state, 2, item.id, ed.read())), true, true), button("Delete", () => update(deleteItem(state, 2, item.id)), true, true)),
+    h("div", { class: "row" }, button("Save", () => update(editItem(state, 2, item.id, ed.read())), true, true)),
     h("div", { class: "row" }, reason, strike),
   );
 }
@@ -258,7 +265,7 @@ function panel(n) {
       "div",
       { class: "row" },
       button(step.status === "empty" ? "Generate" : "Generate again", () => generate(n), aiOn && canRun(state, n) && aiCalls < MAX_AI_CALLS_PER_SESSION),
-      button("Approve", () => update(approve(state, n)), step.status === "draft", true),
+      button("Approve", () => update(approve(state, n)), canApprove(state, n), true),
       n === 1 ? button("Verification check", () => update(addItem(state, 1, { url: state.pages[0]?.url, topic: "offering", quote: TEST_CLAIM }, "test")), state.pages.length > 0, true) : null,
     ),
     n === 1 ? h("p", { class: "hint" }, `Verification check adds an invented test claim (“${TEST_CLAIM}”). It must be dropped as not_on_page.`) : null,

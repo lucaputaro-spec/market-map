@@ -12,7 +12,11 @@ function decode(s: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&nbsp;/g, " ")
-    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)));
+    // Außerhalb des Unicode-Bereichs wirft fromCodePoint, und die ganze Seite fiele weg.
+    .replace(/&#(\d+);/g, (m, n: string) => {
+      const cp = Number(n);
+      return Number.isSafeInteger(cp) && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+    });
 }
 
 export function visibleText(html: string): string {

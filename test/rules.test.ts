@@ -50,9 +50,29 @@ describe("guardProof", () => {
 
 describe("checkOffer", () => {
   it("accepts only the exact category ids", () => {
-    expect(checkOffer({ category: "save_time", email: email("hi") }, FACTS)).toMatchObject({ category: "save_time" });
+    expect(checkOffer({ category: "save_time", idea: "Plan tours", email: email("hi") }, FACTS)).toMatchObject({ category: "save_time" });
     for (const category of ["Save Time", "save time", "SAVE_TIME", "", undefined]) {
-      expect(checkOffer({ category, email: email("hi") }, FACTS)).toMatchObject({ reason: "unknown_category" });
+      expect(checkOffer({ category, idea: "Plan tours", email: email("hi") }, FACTS)).toMatchObject({ reason: "unknown_category" });
+    }
+  });
+});
+
+describe("checkOffer idea", () => {
+  it("replaces unproven numbers in the idea", () => {
+    expect(checkOffer({ category: "save_money", idea: "Cut churn by 40%", email: email("hi") }, FACTS)).toMatchObject({ idea: "Cut churn by {proof}" });
+  });
+
+  it("drops customer references in the idea", () => {
+    for (const idea of ["trusted by Siemens", "Cut churn by 40% like we did for Siemens"]) {
+      expect(checkOffer({ category: "save_money", idea, email: email("hi") }, FACTS), idea).toMatchObject({ reason: "unproven_customer" });
+    }
+  });
+});
+
+describe("customer reference phrases", () => {
+  it("catches like we did for, we helped, for clients like", () => {
+    for (const body of ["Like we did for Bosch.", "We helped Aldi cut tours.", "Built for clients like Lidl."]) {
+      expect(guardProof(email(body), FACTS), body).toMatchObject({ reason: "unproven_customer" });
     }
   });
 });

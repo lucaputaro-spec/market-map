@@ -12,7 +12,9 @@ then drafts a go-to-market strategy in six steps:
 6. **Offers and cold emails:** up to 4 per segment
 
 Each step runs only after the previous one is approved. You can edit, delete
-and add entries; any change marks the later steps as outdated.
+and add entries (segments can only be struck, with a reason); any change
+marks the later steps as outdated. A step without usable entries cannot be
+approved.
 
 **What the code checks, not the model:**
 

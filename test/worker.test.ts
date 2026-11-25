@@ -64,6 +64,9 @@ describe("worker gate", () => {
   });
 });
 
+// Testdaten: erfundenes Fact.
+const FACT = { url: "https://acme.test/", quote: "Acme plans routes", topic: "offering" };
+
 describe("/api/step", () => {
   it("answers 413 above 40 000 bytes", async () => {
     const res = await call(post("/api/step", { step: 2, facts: ["a".repeat(40_100)] }), env({ AI_ENABLED: "true" }));
@@ -71,14 +74,14 @@ describe("/api/step", () => {
   });
 
   it("answers 502 without a model and never sends fallback items", async () => {
-    const res = await call(post("/api/step", { step: 2, domain: "acme.test", facts: [] }), env({ AI_ENABLED: "true" }));
+    const res = await call(post("/api/step", { step: 2, domain: "acme.test", facts: [FACT] }), env({ AI_ENABLED: "true" }));
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: expect.any(String) });
   });
 
   it("passes the model answer through runStep", async () => {
     const AI = { run: async () => ({ response: '{"items":[{"name":"Bakeries"}]}' }) } as unknown as Ai;
-    const res = await call(post("/api/step", { step: 2, domain: "acme.test", facts: [] }, { origin: "https://map.test" }), env({ AI_ENABLED: "true", AI, AI_MODEL: "m" }));
+    const res = await call(post("/api/step", { step: 2, domain: "acme.test", facts: [FACT] }, { origin: "https://map.test" }), env({ AI_ENABLED: "true", AI, AI_MODEL: "m" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ items: [{ name: "Bakeries", industry: "", subIndustry: "", why: "" }] });
   });

@@ -24,7 +24,7 @@ function full(strike: string | null): State {
     3: per((id, k) => ({ segmentId: id, title: `Persona ${k} of ${id}`, measuredOn: ["kpi"], problems: ["pain"] }), 4),
     4: per((id) => ({ segmentId: id, kind: "signal", type: "hiring", description: `Hiring at ${id}` }), 1),
     5: per((id) => ({ segmentId: id, keywords: ["bakery"] }), 1),
-    6: per((id, k) => ({ segmentId: id, category: "save_time", idea: `Offer ${k}`, email: { subject: "Tours", body: "Plans from €49.\nCut costs by 30%." } }), 4),
+    6: per((id, k) => ({ segmentId: id, category: "save_time", idea: `Offer ${k}: cut churn by 40%`, email: { subject: "Tours", body: "Plans from €49.\nCut costs by 30%." } }), 4),
   };
   for (const n of [3, 4, 5, 6] as StepNo[]) {
     s = approve(applyResult(s, n, { items: (raws[n] ?? []).filter((r) => live((r as { segmentId: string }).segmentId)) }), n);
@@ -46,6 +46,8 @@ describe("toMarkdown", () => {
     expect(md.match(/^- \*\*Persona/gm)).toHaveLength(9);
     expect(md.match(/^- \*\*save_time\*\*/gm)).toHaveLength(9);
     expect(md).toContain("> Cut costs by {proof}.");
+    expect(md).toContain("cut churn by {proof}");
+    expect(md).not.toContain("40%");
   });
 
   it("leaves out a struck segment and its personas", () => {

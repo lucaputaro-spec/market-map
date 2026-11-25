@@ -17,7 +17,7 @@ export interface Env {
 
 export const aiEnabled = (env: Pick<Env, "AI_ENABLED">): boolean => env.AI_ENABLED === "true";
 
-const MAX_BODY_BYTES: Record<string, number> = { "/api/fetch": 2000, "/api/step": 40_000 };
+export const MAX_BODY_BYTES: Record<string, number> = { "/api/fetch": 2000, "/api/step": 40_000 };
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {

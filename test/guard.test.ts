@@ -74,6 +74,12 @@ describe("fetchSite", () => {
     expect(calls).not.toContain("https://other.io/about");
   });
 
+  it("survives a page with an out-of-range numeric entity", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => html("<p>odd &#9999999; entity</p>")));
+    const site = await fetchSite("acme.io");
+    expect(site.ok).toBe(true);
+  });
+
   it("rejects a bad domain without any request", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AI_TIMEOUT_MS, MAX_PAGE_TEXT_TOTAL, parseStep, runStep, type AiEnv, type StepNo } from "../src/steps";
+import { AI_TIMEOUT_MS, MAX_PAGE_TEXT_TOTAL, parseStep, readContext, runStep, type AiEnv, type StepNo } from "../src/steps";
 
 // Testdaten: erfundene Modellantworten, nur für diese Tests.
 const fakeAi = (answer: unknown, seen: unknown[] = []): AiEnv => ({
@@ -56,6 +56,11 @@ describe("runStep", () => {
     expect(await runStep({}, ctx1)).toMatchObject({ status: 502, body: { error: expect.any(String) } });
   });
 
+  it("step 2 needs facts", () => {
+    expect(readContext({ step: 2, facts: [] })).toBeNull();
+    expect(readContext({ step: 2 })).toBeNull();
+  });
+
   it("rejects an invalid context with 400", async () => {
     for (const body of [{}, { step: 7 }, { step: 1 }, { step: 3, segments: [] }]) {
       expect((await runStep(fakeAi({ response: "{}" }), body)).status).toBe(400);
@@ -102,7 +107,7 @@ describe("runStep", () => {
   it("has its own prompt for each step", async () => {
     const seen: { messages: { content: string }[] }[] = [];
     for (const step of [1, 2, 3, 4, 5, 6] as StepNo[]) {
-      await runStep(fakeAi({ response: '{"items":[]}' }, seen), { ...ctx1, step, segments: [seg("a")] });
+      await runStep(fakeAi({ response: '{"items":[]}' }, seen), { ...ctx1, step, facts: [{ url: "https://acme.test/", quote: "Acme plans routes.", topic: "offering" }], segments: [seg("a")] });
     }
     expect(new Set(seen.map((s) => s.messages[0]!.content)).size).toBe(6);
   });

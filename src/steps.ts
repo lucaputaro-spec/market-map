@@ -106,6 +106,7 @@ export function readContext(body: Loose): { step: StepNo; data: Loose } | null {
   for (const key of ["facts", "segments", "personas", "signals", "keywords"]) {
     if (body[key] !== undefined) data[key] = bounded(body[key]);
   }
+  if (step === 2 && !(Array.isArray(data.facts) && data.facts.length)) return null;
   if (step >= 3 && !(Array.isArray(data.segments) && data.segments.length)) return null;
   return { step, data };
 }

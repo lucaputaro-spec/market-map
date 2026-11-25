@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addItem, applyResult, approve, buildContext, canRun, createState, deleteItem, editItem, strikeSegment } from "../public/lib/chain.js";
+import { addItem, applyResult, approve, buildContext, canApprove, canRun, createState, deleteItem, editItem, strikeSegment } from "../public/lib/chain.js";
 import type { State, StepNo } from "../public/lib/types.js";
 import { PAGES } from "./helpers";
 
@@ -42,7 +42,9 @@ describe("chain order", () => {
     expect(status(s)).toEqual(["approved", "approved", "approved", "approved", "approved", "approved"]);
     const edited = editItem(s, 2, a, { why: "Many daily tours" });
     expect(status(edited)).toEqual(["approved", "approved", "stale", "stale", "stale", "stale"]);
-    expect(status(deleteItem(s, 2, segId(s, "Zebra Florists")))).toEqual(["approved", "approved", "stale", "stale", "stale", "stale"]);
+    const struck = strikeSegment(s, segId(s, "Zebra Florists"), "Not a fit");
+    if (!("state" in struck)) throw new Error(struck.error);
+    expect(status(struck.state)).toEqual(["approved", "approved", "stale", "stale", "stale", "stale"]);
   });
 
   it("an edit to step 1 makes the later steps stale", () => {
@@ -138,5 +140,82 @@ describe("applyResult", () => {
     applyResult(s, 3, { items: [rawFor(3, segId(s, "Regional bakeries"))] });
     strikeSegment(s, segId(s, "Zebra Florists"), "x");
     expect(JSON.stringify(s)).toBe(before);
+  });
+});
+
+describe("segments are never deleted", () => {
+  it("deleteItem on step 2 keeps the segment and every status", () => {
+    const s = throughStep2();
+    const z = segId(s, "Zebra Florists");
+    const next = deleteItem(s, 2, z);
+    expect(next.steps[2].items.some((i) => i.id === z)).toBe(true);
+    expect(status(next)).toEqual(status(s));
+  });
+});
+
+describe("no approval without entries", () => {
+  it("step 1 with no facts cannot be approved", () => {
+    const s = applyResult(createState("acme.test", PAGES), 1, { items: [] });
+    expect(canApprove(s, 1)).toBe(false);
+    expect(approve(s, 1).steps[1].status).toBe("draft");
+  });
+
+  it("step 2 with every segment struck cannot be approved and step 3 stays locked", () => {
+    let s = createState("acme.test", PAGES);
+    s = approve(applyResult(s, 1, { items: [FACT] }), 1);
+    s = applyResult(s, 2, { items: SEGMENTS });
+    for (const name of ["Regional bakeries", "Zebra Florists"]) {
+      const r = strikeSegment(s, segId(s, name), "No fit");
+      if (!("state" in r)) throw new Error(r.error);
+      s = r.state;
+    }
+    expect(canApprove(s, 2)).toBe(false);
+    s = approve(s, 2);
+    expect(s.steps[2].status).toBe("draft");
+    expect(canRun(s, 3)).toBe(false);
+  });
+
+  it("an approved step falls back to draft when its last entry goes", () => {
+    const s = throughStep2();
+    const next = deleteItem(s, 1, s.steps[1].items[0]!.id);
+    expect(next.steps[1].status).toBe("draft");
+    expect(canRun(next, 2)).toBe(false);
+  });
+
+  it("striking the last live segment of an approved step 2 sets it back to draft", () => {
+    let s = throughStep2();
+    for (const name of ["Regional bakeries", "Zebra Florists"]) {
+      const r = strikeSegment(s, segId(s, name), "No fit");
+      if (!("state" in r)) throw new Error(r.error);
+      s = r.state;
+    }
+    expect(s.steps[2].status).toBe("draft");
+  });
+});
+
+describe("offer idea goes through the checks", () => {
+  it("replaces unproven numbers and drops customer references in the idea", () => {
+    let s = throughStep2();
+    const a = segId(s, "Regional bakeries");
+    for (const n of [3, 4, 5] as StepNo[]) s = approve(applyResult(s, n, { items: [rawFor(n, a)] }), n);
+    s = applyResult(s, 6, {
+      items: [
+        { segmentId: a, category: "save_money", idea: "Cut churn by 40%", email: { subject: "s", body: "b" } },
+        { segmentId: a, category: "save_money", idea: "trusted by Siemens", email: { subject: "s", body: "b" } },
+      ],
+    });
+    expect(s.steps[6].items.map((i) => "idea" in i && i.idea)).toEqual(["Cut churn by {proof}"]);
+    expect(s.steps[6].dropped.map((d) => d.reason)).toEqual(["unproven_customer"]);
+  });
+});
+
+describe("step 1 context size", () => {
+  it("stays under 40 000 bytes with CJK pages and keeps 16 000 characters for ASCII", () => {
+    const cjk = [1, 2, 3, 4].map((i) => ({ url: `https://acme.test/${i}`, text: "漢".repeat(6000) }));
+    const bytes = new TextEncoder().encode(JSON.stringify(buildContext(createState("acme.test", cjk), 1))).length;
+    expect(bytes).toBeLessThan(40_000);
+    const ascii = [1, 2, 3, 4].map((i) => ({ url: `https://acme.test/${i}`, text: "a".repeat(6000) }));
+    const ctx = buildContext(createState("acme.test", ascii), 1);
+    expect(ctx.pages!.reduce((n, p) => n + p.text.length, 0)).toBe(16_000);
   });
 });

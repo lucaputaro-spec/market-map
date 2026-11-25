@@ -57,7 +57,7 @@ export function wordCount(text) {
 
 // Zahl mit Währung davor, oder Zahl mit %, Währung, x, percent/Prozent dahinter.
 const NUMBER_CLAIM = /[€$]\s?\d+(?:[.,]\d+)*|\d+(?:[.,]\d+)*\s?(?:%|€|\$|x(?![\p{L}\p{N}])|percent(?![\p{L}])|prozent(?![\p{L}]))/giu;
-const CUSTOMER_REF = /\b(customers like|clients such as|trusted by|used by|worked with)\b/i;
+const CUSTOMER_REF = /\b(customers like|clients such as|for clients like|trusted by|used by|worked with|like we did for|we helped)\b/i;
 
 /**
  * Steht die Angabe wörtlich (ohne Leerraum verglichen) in einem Fact-Zitat,
@@ -98,14 +98,18 @@ export function guardProof(email, facts) {
 }
 
 /**
- * @param {{ category: unknown, email: Email }} offer
+ * Die Idee läuft durch dieselbe Kunden- und Zahlenprüfung wie die Mail,
+ * weil sie genauso im Export landet. Wortgrenzen gelten nur für die Mail.
+ * @param {{ category: unknown, idea: string, email: Email }} offer
  * @param {Fact[]} facts
- * @returns {{ category: OfferCategory, email: Email } | { reason: DropReason, detail: string }}
+ * @returns {{ category: OfferCategory, idea: string, email: Email } | { reason: DropReason, detail: string }}
  */
 export function checkOffer(offer, facts) {
   if (!isOfferCategory(offer.category)) {
     return { reason: "unknown_category", detail: `category ${JSON.stringify(offer.category)} is not one of ${OFFER_CATEGORIES.join(", ")}` };
   }
+  const ref = offer.idea.match(CUSTOMER_REF);
+  if (ref) return { reason: "unproven_customer", detail: `“${ref[0]}” names customers that no checked source proves` };
   const r = guardProof(offer.email, facts);
-  return "email" in r ? { category: offer.category, email: r.email } : r;
+  return "email" in r ? { category: offer.category, idea: replaceNumbers(offer.idea, facts), email: r.email } : r;
 }

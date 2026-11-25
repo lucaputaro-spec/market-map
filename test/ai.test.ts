@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { AI_UNAVAILABLE, aiResult, MAX_AI_CALLS_PER_SESSION } from "../public/lib/ai.js";
+import { AI_UNAVAILABLE, aiResult, contextTooLarge, MAX_AI_CALLS_PER_SESSION, MAX_STEP_BODY_BYTES } from "../public/lib/ai.js";
+import { MAX_BODY_BYTES } from "../src/index";
 import { applyResult, createState } from "../public/lib/chain.js";
 import type { State } from "../public/lib/types.js";
 import { PAGES } from "./helpers";
@@ -32,5 +33,22 @@ describe("aiResult", () => {
 
   it("caps the session at 30 calls", () => {
     expect(MAX_AI_CALLS_PER_SESSION).toBe(30);
+  });
+});
+
+describe("contextTooLarge", () => {
+  it("names size and limit above 40 000 bytes and is null below", () => {
+    const msg = contextTooLarge({ step: 3, facts: [{ quote: "ü".repeat(25_000) }] });
+    expect(msg).toMatch(/40[ ,.]?000/);
+    expect(msg).toMatch(/shorten or delete/i);
+    expect(contextTooLarge({ step: 3, facts: [] })).toBeNull();
+  });
+
+  it("uses the same limit as the worker", () => {
+    expect(MAX_STEP_BODY_BYTES).toBe(MAX_BODY_BYTES["/api/step"]);
+  });
+
+  it("413 says the request is too large and nothing was generated", () => {
+    expect(aiResult({ status: 413 })).toBe("Request is too large (over 40 000 bytes). Nothing was generated.");
   });
 });
