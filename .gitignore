@@ -1,0 +1,6 @@
+node_modules
+.wrangler
+.dev.vars
+
+# Erklär-Notiz, nur lokal
+ERKLAEREN.md
