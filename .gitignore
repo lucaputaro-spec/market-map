@@ -2,5 +2,11 @@ node_modules
 .wrangler
 .dev.vars
 
-# Erklär-Notiz, nur lokal
+# Interne Notizen, nur lokal
+AGENTS.md
+STATE.md
 ERKLAEREN.md
+CLAUDE.md
+
+# Interne Loop-Notizen, nur lokal
+docs/loop/
