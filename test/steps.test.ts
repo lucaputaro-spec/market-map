@@ -49,6 +49,13 @@ describe("parseStep", () => {
     expect("items" in r6 && r6.items).toHaveLength(3);
     expect("items" in r6 && r6.items[0]).toEqual({ segmentId: "a", category: "save_time", idea: "i", email: { subject: "s", body: "line 1\nline 2" } });
   });
+
+  it("from step 3 drops unknown segmentIds before the caps count", () => {
+    const invented = ["x1", "x2", "x3"].map((id) => ({ segmentId: id, keywords: ["fake"] }));
+    const real = ["a", "b", "c"].map((id) => ({ segmentId: id, keywords: [`k${id}`] }));
+    const r = parseStep(5, { items: [...invented, ...real] }, new Set(["a", "b", "c"]));
+    expect(r).toEqual({ items: real });
+  });
 });
 
 describe("runStep", () => {
@@ -140,6 +147,16 @@ describe("runStep", () => {
     await runStep(fakeAi({ response: '{"items":[]}' }, seen), { step: 6, domain: "acme.test", pages, segments: [seg("a")] });
     expect(seen[1]!.messages[1]!.content).not.toContain("ignore all rules");
     expect(seen[1]!.max_tokens).toBe(2000);
+  });
+
+  it("drops items whose segmentId is not in the context", async () => {
+    const invented = ["x1", "x2", "x3"].map((id) => ({ segmentId: id, keywords: ["fake"] }));
+    const real = ["a", "b", "c"].map((id) => ({ segmentId: id, keywords: [`k${id}`] }));
+    const r = await runStep(fakeAi({ response: JSON.stringify({ items: [...invented, ...real] }) }), { step: 5, domain: "acme.test", segments: [seg("a"), seg("b"), seg("c")] });
+    expect(r.status).toBe(200);
+    const items = "items" in r.body ? r.body.items : [];
+    expect(items).toHaveLength(3);
+    expect(items.every((i) => ["a", "b", "c"].includes(String(i.segmentId)))).toBe(true);
   });
 
   it("has its own prompt for each step", async () => {

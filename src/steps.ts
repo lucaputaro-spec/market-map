@@ -1,7 +1,8 @@
 // Die sechs AI-Schritte. Der Worker baut je Schritt einen eigenen Prompt aus
 // dem Kontext, den der Browser über buildContext() schickt, und prüft an der
-// Antwort nur die Form. Ob ein Zitat stimmt, ob eine Kategorie gilt oder ob
-// ein Segment gestrichen ist, prüft der Browser in applyResult().
+// Antwort die Form und ab Schritt 3, ob die segmentId im Kontext steht. Ob ein
+// Zitat stimmt, ob eine Kategorie gilt oder ob ein Segment gestrichen ist,
+// prüft der Browser in applyResult().
 // Fehler, Timeout oder kaputtes JSON ergeben einen Fehler, nie Ersatzinhalt.
 
 export interface AiEnv {
@@ -151,9 +152,11 @@ function shape(n: StepNo, o: Loose): Item {
   }
 }
 
-// Prüft nur die Form: JSON-Objekt mit items-Liste, je Eintrag die bekannten
-// Felder als Text, Obergrenzen gesamt und je Segment.
-export function parseStep(n: StepNo, raw: unknown): { items: Item[] } | { error: string } {
+// Prüft die Form: JSON-Objekt mit items-Liste, je Eintrag die bekannten
+// Felder als Text, Obergrenzen gesamt und je Segment. Ab Schritt 3 nur
+// segmentIds aus dem Kontext; andere fallen weg, bevor sie bei den
+// Obergrenzen mitzählen, damit erfundene IDs keine echten Einträge verdrängen.
+export function parseStep(n: StepNo, raw: unknown, allowedSegmentIds?: ReadonlySet<string>): { items: Item[] } | { error: string } {
   let obj: unknown = raw;
   if (typeof raw === "string") {
     const start = raw.indexOf("{");
@@ -174,6 +177,7 @@ export function parseStep(n: StepNo, raw: unknown): { items: Item[] } | { error:
     if (items.length >= MAX_TOTAL[n]) break;
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const item = shape(n, entry as Loose);
+    if (n >= 3 && allowedSegmentIds && !allowedSegmentIds.has(String(item.segmentId))) continue;
     if (cap !== undefined) {
       const seg = n === 4 ? `${String(item.segmentId)}|${String(item.kind)}` : String(item.segmentId);
       const count = perSegment.get(seg) ?? 0;
@@ -206,7 +210,9 @@ export async function runStep(env: AiEnv, body: Loose): Promise<StepResult> {
     });
     const result = await Promise.race([call, timeout]);
     if (result === null) return { status: 502, body: { error: `Workers AI gave no answer within ${AI_TIMEOUT_MS / 1000} seconds. Nothing was generated.` } };
-    const parsed = parseStep(ctx.step, modelText(result));
+    const segments = Array.isArray(ctx.data.segments) ? ctx.data.segments : [];
+    const segmentIds = new Set(segments.map((s) => clip(((s ?? {}) as Loose).id, 40)).filter(Boolean));
+    const parsed = parseStep(ctx.step, modelText(result), segmentIds);
     return "error" in parsed ? { status: 502, body: parsed } : { status: 200, body: parsed };
   } catch {
     return { status: 502, body: { error: "Workers AI not available (free daily quota used up or outage). Nothing was generated." } };
